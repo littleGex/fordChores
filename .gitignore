@@ -1,0 +1,12 @@
+.env
+node_modules/
+__pycache__/
+dist/
+postgres_data/
+*.pyc
+.DS_Store
+# IDE folders and files
+.idea/
+.vscode/
+*.swp
+*.iml

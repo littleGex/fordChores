@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-migrate
+flask-corsify
+pytest
+flake8
+psycopg2-binary
+flask-mail
+flask-cors
