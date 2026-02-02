@@ -9,21 +9,30 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - default
 
   backend:
     build:
       context: .
       dockerfile: chores/Dockerfile
+    restart: always # Added restart policy
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
       - MAIL_USERNAME=${MAIL_USERNAME}
       - MAIL_PASSWORD=${MAIL_PASSWORD}
       - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
+      # Make sure to add your new PM_ variables to your .env file!
+      - PM_BASE_URL=${PM_BASE_URL}
+      - PM_LOOKUP_PATH=${PM_LOOKUP_PATH}
+      - PM_DEPOSIT_PATH=${PM_DEPOSIT_PATH}
     depends_on:
       - db
+    networks:
+      - default
+      - pocket_money_net # Connects to the other app
 
-  # 3. The Vue Frontend
   frontend:
     build:
       context: ./frontend
@@ -31,8 +40,17 @@ services:
         - VITE_API_URL=${VITE_API_URL}
     ports:
       - "8080:80"
+    restart: always # Added restart policy
     depends_on:
       - backend
+    networks:
+      - default
+
+networks:
+  # This tells Docker to look for your existing Pocket Money network
+  pocket_money_net:
+    external:
+      name: forddbs_default
 
 volumes:
-  postgres_data: # Define the permanent storage volume
+  postgres_data:
