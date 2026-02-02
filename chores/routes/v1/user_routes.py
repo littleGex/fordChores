@@ -1,8 +1,10 @@
+import os
+import requests
+
 from flask import Blueprint, jsonify, request
 from chores.models import User, Completion
 from chores.database.payout_manager import run_weekly_payout
 from chores.database import db
-from chores.extension import mail
 from chores.extension.mail import send_payout_email
 
 
@@ -76,7 +78,32 @@ def request_payout(user_id):
         }), 200
 
     total = sum(c.chore.reward_level for c in pending)
-    chore_list = [{"name": c.chore.task_name, "reward": c.chore.reward_level} for c in pending]
+
+    base_url = os.getenv("PM_BASE_URL")
+    try:
+        # Call PocketMoney to get user_id
+        lookup_res = requests.get(
+            f"{base_url}{os.getenv('PM_LOOKUP_PATH')}{user.name}"
+        )
+        lookup_res.raise_for_status()
+        pm_child_id = lookup_res.json().get("id")
+
+        # Add chores money
+        payload = {
+            "amount": float(total),
+            "description": f"Payout for {len(pending)} chores"
+        }
+        deposit_res = requests.post(
+            f"{base_url}{os.getenv('PM_DEPOSIT_PATH')}{pm_child_id}",
+            params=payload
+        )
+        deposit_res.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "Pocket Money sync failed",
+                        "details": str(e)}), 503
+
+    chore_list = [{"name": c.chore.task_name,
+                   "reward": c.chore.reward_level} for c in pending]
     # Trigger the email logic from mail.py
     email_sent = send_payout_email(
         user.name,
