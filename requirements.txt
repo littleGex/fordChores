@@ -7,3 +7,4 @@ flake8
 psycopg2-binary
 flask-mail
 flask-cors
+requests
