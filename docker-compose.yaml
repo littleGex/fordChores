@@ -17,6 +17,8 @@ services:
       context: .
       dockerfile: chores/Dockerfile
     restart: always # Added restart policy
+    ports:
+      - "5001:5000"
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
