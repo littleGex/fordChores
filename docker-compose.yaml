@@ -47,12 +47,15 @@ services:
       - backend
     networks:
       - default
+      - proxy_network
 
 networks:
   # This tells Docker to look for your existing Pocket Money network
   pocket_money_net:
     external:
       name: forddbs_default
+  proxy_network:
+    external: true
 
 volumes:
   postgres_data:
