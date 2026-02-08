@@ -12,8 +12,7 @@ user_v1 = Blueprint('user_v1', __name__, url_prefix='/api/v1/users')
 
 
 @user_v1.route('/add_user',
-               methods=['POST', 'OPTIONS'],
-                provide_automatic_options=False)
+               methods=['POST'])
 def add_user():
     data = request.get_json()
     new_user = User(name=data['name'], email=data['email'])
@@ -24,19 +23,21 @@ def add_user():
 
 
 @user_v1.route('/',
-               methods=['GET', 'OPTIONS'],
-                provide_automatic_options=False)
+               methods=['GET'])
 def get_users():
     users = User.query.all()
-    return jsonify([{"id": u.id, "name": u.name, "email": u.email} for u in users])
+    return jsonify([{"id": u.id,
+                     "name": u.name,
+                     "email": u.email} for u in users])
 
 
 @user_v1.route('/<int:user_id>/balance',
-               methods=['GET', 'OPTIONS'],
-               provide_automatic_options=False)
+               methods=['GET'])
 def get_user_balance(user_id):
     # Find all pending completions for this user
-    pending = Completion.query.filter_by(user_id=user_id, payout_status='pending').all()
+    pending = Completion.query.filter_by(
+        user_id=user_id,
+        payout_status='pending').all()
 
     # Calculate total by reaching through the relationship to the Chore model
     total = sum(item.chore.reward_level for item in pending)
@@ -49,8 +50,7 @@ def get_user_balance(user_id):
 
 
 @user_v1.route('/<int:user_id>/history',
-               methods=['GET', 'OPTIONS'],
-               provide_automatic_options=False)
+               methods=['GET'])
 def get_user_history(user_id):
     # Returns all completions (paid and unpaid) sorted by date
     history = Completion.query.filter_by(
@@ -66,8 +66,7 @@ def get_user_history(user_id):
 
 
 @user_v1.route('/<int:user_id>/payout',
-               methods=['POST', 'OPTIONS'],
-               provide_automatic_options=False)
+               methods=['POST'])
 def payout_user(user_id):
     # This calls your existing payout_manager logic
     total = run_weekly_payout(user_id)
@@ -79,8 +78,7 @@ def payout_user(user_id):
 
 
 @user_v1.route('/<int:user_id>/request_payout',
-               methods=['POST', 'OPTIONS'],
-                provide_automatic_options=False)
+               methods=['POST'])
 def request_payout(user_id):
     user = User.query.get_or_404(user_id)
     pending = Completion.query.filter_by(user_id=user_id,
@@ -89,7 +87,7 @@ def request_payout(user_id):
     if not pending:
         return jsonify({
             "message": "No pending chores",
-            "email_status": "none" # Explicitly return a status
+            "email_status": "none"  # Explicitly return a status
         }), 200
 
     total = sum(c.chore.reward_level for c in pending)
@@ -140,8 +138,7 @@ def request_payout(user_id):
 
 
 @user_v1.route('/test_email',
-               methods=['GET', 'OPTIONS'],
-               provide_automatic_options=False)
+               methods=['GET'])
 def test_email():
     # Try sending a dummy email to yourself
     success = send_payout_email(
@@ -151,14 +148,15 @@ def test_email():
     )
 
     if success:
-        return "<h3>Success!</h3><p>Check your iCloud inbox (and spam folder).</p>"
+        return ("<h3>Success!</h3><p>Check your iCloud inbox "
+                "(and spam folder).</p>")
     else:
-        return "<h3>Failed!</h3><p>Check the terminal/console for the specific error.</p>", 500
+        return ("<h3>Failed!</h3><p>Check the terminal/console for"
+                " the specific error.</p>"), 500
 
 
 @user_v1.route('/<int:user_id>',
-               methods=['DELETE', 'OPTIONS'],
-                provide_automatic_options=False)
+               methods=['DELETE'])
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     # Note: You may need to handle cascading deletes for completions
@@ -168,8 +166,7 @@ def delete_user(user_id):
 
 
 @user_v1.route('/<int:user_id>',
-               methods=['PUT', 'OPTIONS'],
-                provide_automatic_options=False)
+               methods=['PUT'])
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json()
