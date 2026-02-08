@@ -18,7 +18,9 @@ CORS(
 )
 
 
-@user_v1.route('/add_user', methods=['POST'])
+@user_v1.route('/add_user',
+               methods=['POST', 'OPTIONS'],
+                provide_automatic_options=False)
 def add_user():
     data = request.get_json()
     new_user = User(name=data['name'], email=data['email'])
@@ -28,13 +30,17 @@ def add_user():
     return jsonify({"message": "User added successfully"}), 201
 
 
-@user_v1.route('/')
+@user_v1.route('/',
+               methods=['GET', 'OPTIONS'],
+                provide_automatic_options=False)
 def get_users():
     users = User.query.all()
     return jsonify([{"id": u.id, "name": u.name, "email": u.email} for u in users])
 
 
-@user_v1.route('/<int:user_id>/balance')
+@user_v1.route('/<int:user_id>/balance',
+               methods=['GET', 'OPTIONS'],
+               provide_automatic_options=False)
 def get_user_balance(user_id):
     # Find all pending completions for this user
     pending = Completion.query.filter_by(user_id=user_id, payout_status='pending').all()
@@ -49,10 +55,14 @@ def get_user_balance(user_id):
     })
 
 
-@user_v1.route('/<int:user_id>/history')
+@user_v1.route('/<int:user_id>/history',
+               methods=['GET', 'OPTIONS'],
+               provide_automatic_options=False)
 def get_user_history(user_id):
     # Returns all completions (paid and unpaid) sorted by date
-    history = Completion.query.filter_by(user_id=user_id).order_by(Completion.completed_at.desc()).all()
+    history = Completion.query.filter_by(
+        user_id=user_id).order_by(
+        Completion.completed_at.desc()).all()
 
     return jsonify([{
         "task": h.chore.task_name,
@@ -62,7 +72,9 @@ def get_user_history(user_id):
     } for h in history])
 
 
-@user_v1.route('/<int:user_id>/payout', methods=['POST'])
+@user_v1.route('/<int:user_id>/payout',
+               methods=['POST', 'OPTIONS'],
+               provide_automatic_options=False)
 def payout_user(user_id):
     # This calls your existing payout_manager logic
     total = run_weekly_payout(user_id)
@@ -73,10 +85,13 @@ def payout_user(user_id):
     })
 
 
-@user_v1.route('/<int:user_id>/request_payout', methods=['POST'])
+@user_v1.route('/<int:user_id>/request_payout',
+               methods=['POST', 'OPTIONS'],
+                provide_automatic_options=False)
 def request_payout(user_id):
     user = User.query.get_or_404(user_id)
-    pending = Completion.query.filter_by(user_id=user_id, payout_status='pending').all()
+    pending = Completion.query.filter_by(user_id=user_id,
+                                         payout_status='pending').all()
 
     if not pending:
         return jsonify({
@@ -131,7 +146,9 @@ def request_payout(user_id):
     }), 200
 
 
-@user_v1.route('/test_email')
+@user_v1.route('/test_email',
+               methods=['GET', 'OPTIONS'],
+               provide_automatic_options=False)
 def test_email():
     # Try sending a dummy email to yourself
     success = send_payout_email(
@@ -146,7 +163,9 @@ def test_email():
         return "<h3>Failed!</h3><p>Check the terminal/console for the specific error.</p>", 500
 
 
-@user_v1.route('/<int:user_id>', methods=['DELETE'])
+@user_v1.route('/<int:user_id>',
+               methods=['DELETE', 'OPTIONS'],
+                provide_automatic_options=False)
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     # Note: You may need to handle cascading deletes for completions
@@ -155,7 +174,9 @@ def delete_user(user_id):
     return jsonify({"message": "User removed"}), 200
 
 
-@user_v1.route('/<int:user_id>', methods=['PUT'])
+@user_v1.route('/<int:user_id>',
+               methods=['PUT', 'OPTIONS'],
+                provide_automatic_options=False)
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json()
