@@ -13,13 +13,17 @@ CORS(
 )
 
 
-@chore_v1.route('/', methods=['GET'])
+@chore_v1.route('/',
+                methods=['GET', 'OPTIONS'],
+                provide_automatic_options=False)
 def get_chores():
     chores = Chore.query.all()
     return jsonify([{"id": c.id, "task": c.task_name, "reward": c.reward_level} for c in chores])
 
 
-@chore_v1.route('/', methods=['POST'])
+@chore_v1.route('/',
+                methods=['POST', 'OPTIONS'],
+                provide_automatic_options=False)
 def add_chore():
     data = request.get_json()
 
@@ -38,7 +42,9 @@ def add_chore():
     return jsonify({"message": "Chore created", "id": new_chore.id}), 201
 
 
-@chore_v1.route('/complete', methods=['POST'])
+@chore_v1.route('/complete',
+                methods=['POST', 'OPTIONS'],
+                provide_automatic_options=False)
 def complete_chore():
     data = request.get_json()
 
@@ -74,7 +80,9 @@ def complete_chore():
     }), 201
 
 
-@chore_v1.route('/<int:chore_id>', methods=['DELETE'])
+@chore_v1.route('/<int:chore_id>',
+                methods=['DELETE', 'OPTIONS'],
+                provide_automatic_options=False)
 def delete_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     db.session.delete(chore)
@@ -82,7 +90,9 @@ def delete_chore(chore_id):
     return jsonify({"message": "Chore deleted"}), 200
 
 
-@chore_v1.route('/<int:chore_id>', methods=['PUT'])
+@chore_v1.route('/<int:chore_id>',
+                methods=['PUT', 'OPTIONS'],
+                provide_automatic_options=False)
 def update_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     data = request.get_json()
