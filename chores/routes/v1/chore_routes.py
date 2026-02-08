@@ -7,16 +7,16 @@ chore_v1 = Blueprint('chore_v1', __name__, url_prefix='/api/v1/chores')
 
 
 @chore_v1.route('/',
-                methods=['GET', 'OPTIONS'],
-                provide_automatic_options=False)
+                methods=['GET'])
 def get_chores():
     chores = Chore.query.all()
-    return jsonify([{"id": c.id, "task": c.task_name, "reward": c.reward_level} for c in chores])
+    return jsonify([{"id": c.id,
+                     "task": c.task_name,
+                     "reward": c.reward_level} for c in chores])
 
 
 @chore_v1.route('/',
-                methods=['POST', 'OPTIONS'],
-                provide_automatic_options=False)
+                methods=['POST'])
 def add_chore():
     data = request.get_json()
 
@@ -36,8 +36,7 @@ def add_chore():
 
 
 @chore_v1.route('/complete',
-                methods=['POST', 'OPTIONS'],
-                provide_automatic_options=False)
+                methods=['POST'])
 def complete_chore():
     data = request.get_json()
 
@@ -74,8 +73,7 @@ def complete_chore():
 
 
 @chore_v1.route('/<int:chore_id>',
-                methods=['DELETE', 'OPTIONS'],
-                provide_automatic_options=False)
+                methods=['DELETE'])
 def delete_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     db.session.delete(chore)
@@ -84,8 +82,7 @@ def delete_chore(chore_id):
 
 
 @chore_v1.route('/<int:chore_id>',
-                methods=['PUT', 'OPTIONS'],
-                provide_automatic_options=False)
+                methods=['PUT'])
 def update_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     data = request.get_json()
@@ -93,4 +90,3 @@ def update_chore(chore_id):
     chore.reward_level = data.get('reward_level', chore.reward_level)
     db.session.commit()
     return jsonify({"message": "Chore updated"}), 200
-

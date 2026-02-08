@@ -1,0 +1,10 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv
+max-complexity = 14
+per-file-ignores =
+    __init__.py: F401
