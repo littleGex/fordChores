@@ -2,7 +2,6 @@ import os
 import requests
 
 from flask import Blueprint, jsonify, request
-from flask_cors import CORS
 from chores.models import User, Completion
 from chores.database.payout_manager import run_weekly_payout
 from chores.database import db
@@ -10,12 +9,6 @@ from chores.extension.mail import send_payout_email
 
 
 user_v1 = Blueprint('user_v1', __name__, url_prefix='/api/v1/users')
-CORS(
-    user_v1,
-    origins=["https://chores.ford-home-apps.com"],
-    allow_headers=["Content-Type", "Authorization"],
-    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
-)
 
 
 @user_v1.route('/add_user',
