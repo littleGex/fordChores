@@ -1,9 +1,16 @@
 from flask import Blueprint, jsonify, request
+from flask_cors import CORS
 from chores.models import Chore, Completion, User
 from chores.database import db
 
 
 chore_v1 = Blueprint('chore_v1', __name__, url_prefix='/api/v1/chores')
+CORS(
+    chore_v1,
+    origins=["https://chores.ford-home-apps.com"],
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
 
 
 @chore_v1.route('/', methods=['GET'])

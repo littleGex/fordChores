@@ -7,24 +7,6 @@ from chores.extension import mail
 
 def create_app(config_class=Config):
     app = Flask(__name__)
-    CORS(
-        app,
-        resources={r"/api/*": {
-            "origins": ["https://chores.ford-home-apps.com"]
-        }},
-        supports_credentials=False,
-        allow_headers=[
-            "Content-Type",
-            "Authorization"
-        ],
-        methods=[
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-            "OPTIONS"
-        ]
-    )
     app.config.from_object(config_class)
 
     # 1. Initialize the database with this specific app
