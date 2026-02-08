@@ -7,6 +7,7 @@ from chores.extension import mail
 
 def create_app(config_class=Config):
     app = Flask(__name__)
+    CORS(app)
     app.config.from_object(config_class)
 
     # 1. Initialize the database with this specific app
