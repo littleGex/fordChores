@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask
 from flask_cors import CORS
 from config import Config
@@ -7,7 +9,13 @@ from chores.extension import mail
 
 def create_app(config_class=Config):
     app = Flask(__name__)
-    CORS(app)
+
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if not any(allowed_origins):
+        allowed_origins = "*"
+
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}})
+
     app.config.from_object(config_class)
 
     # 1. Initialize the database with this specific app
