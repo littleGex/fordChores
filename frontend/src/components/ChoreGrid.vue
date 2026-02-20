@@ -8,7 +8,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1'
 
 const completeTask = async (choreId) => {
   try {
-    await axios.post('${API}/chores/complete', {
+    await axios.post(`${API}/chores/complete`, {
       user_id: props.userId,
       chore_id: choreId
     })
