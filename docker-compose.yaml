@@ -29,6 +29,7 @@ services:
       - PM_BASE_URL=${PM_BASE_URL}
       - PM_LOOKUP_PATH=${PM_LOOKUP_PATH}
       - PM_DEPOSIT_PATH=${PM_DEPOSIT_PATH}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     depends_on:
       - db
     networks:
