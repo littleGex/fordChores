@@ -7,6 +7,9 @@ from chores.database import db
 from chores.extension import mail
 
 
+__version__ = "1.1.0"
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
 

@@ -17,7 +17,7 @@ const loadData = async () => {
     ])
     users.value = uRes.data
     chores.value = cRes.data
-  } catch (err) { console.error("Admin load failed:", err) }
+  } catch { console.error("Admin load failed:") }
 }
 
 // --- USER ACTIONS ---
@@ -28,7 +28,7 @@ const addUser = async () => {
     await axios.post(`${API}/users/add_user`, newUser.value) //
     newUser.value = { name: '', email: '' }
     loadData()
-  } catch (err) { alert("Failed to add user.") }
+  } catch { alert("Failed to add user.") }
 }
 
 const editUser = async (user) => {
@@ -40,7 +40,7 @@ const editUser = async (user) => {
       // Uses PUT /api/v1/users/<id>
       await axios.put(`${API}/users/${user.id}`, { name, email })
       loadData()
-    } catch (err) { alert("Failed to update user.") }
+    } catch { alert("Failed to update user.") }
   }
 }
 

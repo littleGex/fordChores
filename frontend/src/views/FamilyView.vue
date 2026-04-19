@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { formatEuro } from '../utils/format'
 
 const users = ref([])
 const newUserName = ref('')
