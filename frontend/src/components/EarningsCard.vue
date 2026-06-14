@@ -1,15 +1,26 @@
 <script setup>
+import { ref } from 'vue'
 import axios from 'axios' // 1. Added missing axios import
 import {formatEuro} from '../utils/format'
 
 const props = defineProps(['balance', 'userId'])
 const emit = defineEmits(['paid']) // 2. Explicitly define the emit
 
+// Guards against double-clicks/double-taps firing duplicate payout requests
+const isProcessing = ref(false)
+
 const requestPayment = async () => {
   if (props.balance <= 0) {
     alert("You don't have any pending earnings to request!")
     return
   }
+
+  // Already submitted - ignore extra clicks while waiting on the server
+  if (isProcessing.value) {
+    return
+  }
+
+  isProcessing.value = true
 
   try {
     const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1'
@@ -27,6 +38,8 @@ const requestPayment = async () => {
   } catch (err) {
     console.error("Payout failed:", err)
     alert("An error occurred while processing your payout.")
+  } finally {
+    isProcessing.value = false
   }
 }
 </script>
@@ -51,9 +64,9 @@ const requestPayment = async () => {
     <button
       @click="requestPayment"
       class="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-50 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-      :disabled="balance <= 0"
+      :disabled="balance <= 0 || isProcessing"
     >
-      Request Payout
+      {{ isProcessing ? 'Processing...' : 'Request Payout' }}
     </button>
   </div>
 </template>

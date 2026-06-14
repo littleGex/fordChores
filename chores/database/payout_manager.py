@@ -6,12 +6,21 @@ def run_weekly_payout(user_id):
     """
     Finds all 'pending' completions for a user, calculates the total,
     marks them 'paid', and could be expanded to create a Payout record.
+
+    This is made safe against concurrent/duplicate calls (e.g. a double
+    button press, or two requests racing) by:
+      - locking the pending rows for this user (FOR UPDATE) so a second
+        concurrent call cannot see the same rows until the first commits
+      - immediately flipping status away from 'pending' before doing any
+        further work, so a retry/duplicate call finds nothing left to pay
     """
-    # Fetch all unpaid chores for this specific user
+    # Lock the pending rows for this user so concurrent calls serialize.
+    # skip_locked means a concurrent duplicate call simply sees an empty
+    # result instead of blocking.
     pending_tasks = Completion.query.filter_by(
         user_id=user_id,
         payout_status='pending'
-    ).all()
+    ).with_for_update(skip_locked=True).all()
 
     if not pending_tasks:
         return 0.0

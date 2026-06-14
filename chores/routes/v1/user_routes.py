@@ -68,8 +68,21 @@ def get_user_history(user_id):
 @user_v1.route('/<int:user_id>/payout',
                methods=['POST'])
 def payout_user(user_id):
-    # This calls your existing payout_manager logic
+    User.query.get_or_404(user_id)
+
+    # This calls your existing payout_manager logic. run_weekly_payout
+    # now locks pending rows and marks them 'paid' atomically, so a
+    # duplicate/concurrent call to this route returns 0.0 instead of
+    # paying out twice.
     total = run_weekly_payout(user_id)
+
+    if total <= 0:
+        return jsonify({
+            "message": "No pending chores to pay out",
+            "amount_paid": 0.0,
+            "status": "noop"
+        }), 200
+
     return jsonify({
         "message": "Payout successful",
         "amount_paid": total,
@@ -81,27 +94,38 @@ def payout_user(user_id):
                methods=['POST'])
 def request_payout(user_id):
     user = User.query.get_or_404(user_id)
-    pending = Completion.query.filter_by(user_id=user_id,
-                                         payout_status='pending').all()
+
+    # Lock the pending rows for this user so concurrent requests serialize
+    pending = Completion.query.filter_by(
+        user_id=user_id,
+        payout_status='pending'
+    ).with_for_update(skip_locked=True).all()
 
     if not pending:
         return jsonify({
             "message": "No pending chores",
-            "email_status": "none"  # Explicitly return a status
+            "email_status": "none"
         }), 200
 
     total = sum(c.chore.reward_level for c in pending)
+    chore_list = [{"name": c.chore.task_name,
+                   "reward": c.chore.reward_level} for c in pending]
+
+    # Claim these completions immediately, before the slow external call.
+    # If a second request arrives, the rows are already 'processing' /
+    # no longer 'pending', so it will find nothing and exit above.
+    for item in pending:
+        item.payout_status = 'processing'
+    db.session.commit()
 
     base_url = os.getenv("PM_BASE_URL")
     try:
-        # Call PocketMoney to get user_id
         lookup_res = requests.get(
             f"{base_url}{os.getenv('PM_LOOKUP_PATH')}{user.name}"
         )
         lookup_res.raise_for_status()
         pm_child_id = lookup_res.json().get("id")
 
-        # Add chores money
         payload = {
             "amount": float(total),
             "description": f"Payout for {len(pending)} chores"
@@ -112,12 +136,13 @@ def request_payout(user_id):
         )
         deposit_res.raise_for_status()
     except requests.exceptions.RequestException as e:
+        # Roll back the claim so the chores can be retried/paid later
+        for item in pending:
+            item.payout_status = 'pending'
+        db.session.commit()
         return jsonify({"error": "Pocket Money sync failed",
                         "details": str(e)}), 503
 
-    chore_list = [{"name": c.chore.task_name,
-                   "reward": c.chore.reward_level} for c in pending]
-    # Trigger the email logic from mail.py
     email_sent = send_payout_email(
         user.name,
         total,
@@ -126,7 +151,7 @@ def request_payout(user_id):
         recipient_email=user.email
     )
 
-    # Mark as paid in database
+    # Finalize as paid (already claimed, just confirming final state)
     for item in pending:
         item.payout_status = 'paid'
     db.session.commit()
