@@ -77,12 +77,12 @@ def parents_only(view):
 
 
 def own_user():
-    """The chore-tracker user a child's login belongs to, matched on the
-    name of their Pocket Money profile (as payouts already are)."""
-    child_name = g.identity.get("child_name")
-    if not child_name:
+    """The chore-tracker user a child's login belongs to: the one linked
+    to the same Pocket Money child as their family account."""
+    child_id = g.identity.get("child_id")
+    if child_id is None:
         return None
-    return User.query.filter_by(name=child_name).first()
+    return User.query.filter_by(pm_child_id=child_id).first()
 
 
 def authorize_user(user_id):

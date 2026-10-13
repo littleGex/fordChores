@@ -27,7 +27,6 @@ services:
       - MAIL_DEFAULT_SENDER=${MAIL_DEFAULT_SENDER}
       # Make sure to add your new PM_ variables to your .env file!
       - PM_BASE_URL=${PM_BASE_URL}
-      - PM_LOOKUP_PATH=${PM_LOOKUP_PATH}
       - PM_DEPOSIT_PATH=${PM_DEPOSIT_PATH}
       - PM_SERVICE_KEY=${PM_SERVICE_KEY}
       - AUTH_ME_URL=${AUTH_ME_URL:-}
