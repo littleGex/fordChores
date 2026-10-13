@@ -30,6 +30,7 @@ services:
       - PM_LOOKUP_PATH=${PM_LOOKUP_PATH}
       - PM_DEPOSIT_PATH=${PM_DEPOSIT_PATH}
       - PM_SERVICE_KEY=${PM_SERVICE_KEY}
+      - AUTH_ME_URL=${AUTH_ME_URL:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     depends_on:
       - db
@@ -43,6 +44,7 @@ services:
       context: ./frontend
       args:
         - VITE_API_URL=${VITE_API_URL}
+        - VITE_AUTH_URL=${VITE_AUTH_URL}
     ports:
       - "8080:80"
     restart: always # Added restart policy

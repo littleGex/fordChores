@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import axios from '../api'
 import UserToggle from '../components/UserToggle.vue'
 import EarningsCard from '../components/EarningsCard.vue'
 import ChoreGrid from '../components/ChoreGrid.vue'
