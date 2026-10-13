@@ -1,9 +1,11 @@
 from flask import Blueprint, jsonify, request
 from chores.models import Chore, Completion, User
 from chores.database import db
+from chores.auth import load_identity, parents_only, authorize_user
 
 
 chore_v1 = Blueprint('chore_v1', __name__, url_prefix='/api/v1/chores')
+chore_v1.before_request(load_identity)
 
 
 @chore_v1.route('/',
@@ -17,6 +19,7 @@ def get_chores():
 
 @chore_v1.route('/',
                 methods=['POST'])
+@parents_only
 def add_chore():
     data = request.get_json()
 
@@ -47,6 +50,8 @@ def complete_chore():
     if not user_id or not chore_id:
         return jsonify({"error": "user_id and chore_id required"}), 400
 
+    authorize_user(user_id)
+
     # Verify user and chore exist
     user = User.query.get(user_id)
     chore = Chore.query.get(chore_id)
@@ -74,6 +79,7 @@ def complete_chore():
 
 @chore_v1.route('/<int:chore_id>',
                 methods=['DELETE'])
+@parents_only
 def delete_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     db.session.delete(chore)
@@ -83,6 +89,7 @@ def delete_chore(chore_id):
 
 @chore_v1.route('/<int:chore_id>',
                 methods=['PUT'])
+@parents_only
 def update_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
     data = request.get_json()

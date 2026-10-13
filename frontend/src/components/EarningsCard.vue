@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import axios from 'axios' // 1. Added missing axios import
+import axios from '../api'
 import {formatEuro} from '../utils/format'
 
 const props = defineProps(['balance', 'userId'])

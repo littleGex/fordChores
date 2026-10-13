@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+import axios from '../api'
 import { useRouter } from 'vue-router'
+import { auth, isParent, logout as clearSession } from '../auth'
 
 // Component Imports
 import UserToggle from '../components/UserToggle.vue'
@@ -21,26 +22,30 @@ const showAddTask = ref(false)
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1'
 
-const enterAdminMode = () => {
-  const pin = prompt("Enter Parent PIN:")
-  if (pin === '1234') {
-    router.push('/admin')
-  } else if (pin !== null) {
-    alert("Incorrect PIN")
-  }
+const logout = () => {
+  clearSession()
+  router.push('/login')
 }
 
 const loadDashboard = async () => {
   loading.value = true
   try {
-    const [uRes, cRes, bRes, hRes] = await Promise.all([
-      axios.get(`${API}/users/`),
+    // A child's list only holds themselves, so make sure the selected
+    // user is one this login may see before asking for their data
+    const uRes = await axios.get(`${API}/users/`)
+    users.value = uRes.data
+    if (!users.value.some(u => u.id === activeUserId.value)) {
+      if (users.value.length === 0) return
+      activeUserId.value = users.value[0].id
+      return // the watcher reloads for the new user
+    }
+
+    const [cRes, bRes, hRes] = await Promise.all([
       axios.get(`${API}/chores/`),
       axios.get(`${API}/users/${activeUserId.value}/balance`),
       axios.get(`${API}/users/${activeUserId.value}/history`)
     ])
 
-    users.value = uRes.data
     // Map backend keys to frontend names (task/reward)
     chores.value = cRes.data.map(c => ({
       ...c,
@@ -65,14 +70,16 @@ onMounted(loadDashboard)
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-8">
-          <div @click="enterAdminMode" class="font-black text-xl text-indigo-600 tracking-tighter cursor-pointer select-none">
+          <div class="font-black text-xl text-indigo-600 tracking-tighter select-none">
             ChoreTracker
           </div>
 
           <nav class="flex items-center space-x-6 text-sm font-bold text-gray-500">
-            <button @click="showAddTask = true" class="hover:text-indigo-600 transition flex items-center">
+            <button v-if="isParent" @click="showAddTask = true" class="hover:text-indigo-600 transition flex items-center">
               <span class="text-lg mr-1">+</span> Add Task
             </button>
+            <router-link v-if="isParent" to="/admin" class="hover:text-indigo-600 transition">Admin</router-link>
+            <button @click="logout" class="hover:text-indigo-600 transition">Log out</button>
             </nav>
         </div>
 
@@ -84,6 +91,10 @@ onMounted(loadDashboard)
       <div v-if="loading" class="flex flex-col items-center justify-center py-20 text-gray-400 space-y-4">
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
         <p class="font-medium">Syncing...</p>
+      </div>
+
+      <div v-else-if="users.length === 0" class="text-center py-20 text-gray-400 font-medium">
+        No chore profile is linked to {{ auth.user.display_name }}'s login yet.
       </div>
 
       <template v-else>

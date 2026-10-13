@@ -6,13 +6,17 @@ from chores.models import User, Completion
 from chores.database.payout_manager import run_weekly_payout
 from chores.database import db
 from chores.extension.mail import send_payout_email
+from chores.auth import (load_identity, parents_only, authorize_user,
+                         is_parent, own_user)
 
 
 user_v1 = Blueprint('user_v1', __name__, url_prefix='/api/v1/users')
+user_v1.before_request(load_identity)
 
 
 @user_v1.route('/add_user',
                methods=['POST'])
+@parents_only
 def add_user():
     data = request.get_json()
     new_user = User(name=data['name'], email=data['email'])
@@ -25,7 +29,12 @@ def add_user():
 @user_v1.route('/',
                methods=['GET'])
 def get_users():
-    users = User.query.all()
+    # Parents see everyone; a child only sees themselves
+    if is_parent():
+        users = User.query.all()
+    else:
+        me = own_user()
+        users = [me] if me else []
     return jsonify([{"id": u.id,
                      "name": u.name,
                      "email": u.email} for u in users])
@@ -34,6 +43,8 @@ def get_users():
 @user_v1.route('/<int:user_id>/balance',
                methods=['GET'])
 def get_user_balance(user_id):
+    authorize_user(user_id)
+
     # Find all pending completions for this user
     pending = Completion.query.filter_by(
         user_id=user_id,
@@ -52,6 +63,8 @@ def get_user_balance(user_id):
 @user_v1.route('/<int:user_id>/history',
                methods=['GET'])
 def get_user_history(user_id):
+    authorize_user(user_id)
+
     # Returns all completions (paid and unpaid) sorted by date
     history = Completion.query.filter_by(
         user_id=user_id).order_by(
@@ -67,6 +80,7 @@ def get_user_history(user_id):
 
 @user_v1.route('/<int:user_id>/payout',
                methods=['POST'])
+@parents_only
 def payout_user(user_id):
     User.query.get_or_404(user_id)
 
@@ -93,6 +107,8 @@ def payout_user(user_id):
 @user_v1.route('/<int:user_id>/request_payout',
                methods=['POST'])
 def request_payout(user_id):
+    authorize_user(user_id)
+
     user = User.query.get_or_404(user_id)
 
     # Lock the pending rows for this user so concurrent requests serialize
@@ -169,6 +185,7 @@ def request_payout(user_id):
 
 @user_v1.route('/test_email',
                methods=['GET'])
+@parents_only
 def test_email():
     # Try sending a dummy email to yourself
     success = send_payout_email(
@@ -187,6 +204,7 @@ def test_email():
 
 @user_v1.route('/<int:user_id>',
                methods=['DELETE'])
+@parents_only
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     # Note: You may need to handle cascading deletes for completions
@@ -197,6 +215,7 @@ def delete_user(user_id):
 
 @user_v1.route('/<int:user_id>',
                methods=['PUT'])
+@parents_only
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.get_json()

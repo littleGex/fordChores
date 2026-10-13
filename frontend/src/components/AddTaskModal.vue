@@ -1,6 +1,6 @@
 <script setup>
 import {ref} from 'vue'
-import axios from 'axios'
+import axios from '../api'
 import {formatEuro} from '../utils/format'
 
 const emit = defineEmits(['close', 'taskAdded'])
