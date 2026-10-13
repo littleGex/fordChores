@@ -27,12 +27,12 @@ const completeTask = async (choreId) => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
     <div v-for="chore in chores" :key="chore.id"
-         class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-      <div class="flex justify-between items-start mb-6">
-        <h4 class="font-black text-gray-900 text-lg">{{ chore.task }}</h4>
-        <span class="text-indigo-600 font-black bg-indigo-50 px-3 py-1 rounded-xl text-sm">
+         class="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+      <div class="flex justify-between items-start gap-3 mb-4 md:mb-6">
+        <h4 class="font-black text-gray-900 text-lg min-w-0 break-words">{{ chore.task }}</h4>
+        <span class="shrink-0 whitespace-nowrap text-indigo-600 font-black bg-indigo-50 px-3 py-1 rounded-xl text-sm">
           {{ formatEuro(chore.reward) }}
         </span>
       </div>

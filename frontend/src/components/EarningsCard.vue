@@ -46,18 +46,18 @@ const requestPayment = async () => {
 
 <template>
   <div
-    class="bg-indigo-600 rounded-3xl p-8 text-white flex flex-col md:flex-row justify-between items-center gap-6 shadow-xl shadow-indigo-100">
-    <div class="flex items-center space-x-6">
-      <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+    class="bg-indigo-600 rounded-3xl p-6 md:p-8 text-white flex flex-col md:flex-row justify-between items-stretch md:items-center gap-6 shadow-xl shadow-indigo-100">
+    <div class="flex items-center space-x-4 md:space-x-6 min-w-0">
+      <div class="w-14 h-14 md:w-16 md:h-16 shrink-0 bg-white/20 rounded-2xl flex items-center justify-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none"
              viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
         </svg>
       </div>
-      <div>
+      <div class="min-w-0">
         <p class="text-indigo-100 text-sm font-medium uppercase tracking-wider">Pending Balance</p>
-        <h2 class="text-6xl font-black">{{ formatEuro(balance) }}</h2>
+        <h2 class="text-5xl md:text-6xl font-black whitespace-nowrap">{{ formatEuro(balance) }}</h2>
       </div>
     </div>
 
