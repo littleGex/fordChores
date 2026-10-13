@@ -79,8 +79,13 @@ const editUser = async (user) => {
 }
 
 const deleteUser = async (id) => {
-  if (confirm("Remove family member?")) {
-    await axios.delete(`${API}/users/${id}`) //
+  if (confirm("Remove this family member and their chore history?")) {
+    try {
+      await axios.delete(`${API}/users/${id}`) //
+    } catch (err) {
+      // e.g. they still have unpaid chores
+      alert(err.response?.data?.error || "Failed to remove the family member.")
+    }
     loadData()
   }
 }
@@ -101,7 +106,13 @@ const editChore = async (chore) => {
 
 const deleteChore = async (id) => {
   if (confirm("Delete chore?")) {
-    await axios.delete(`${API}/chores/${id}`) //
+    try {
+      // A chore that has been done before is retired rather than
+      // deleted, so its history and unpaid completions stay intact
+      await axios.delete(`${API}/chores/${id}`) //
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to delete the chore.")
+    }
     loadData()
   }
 }
