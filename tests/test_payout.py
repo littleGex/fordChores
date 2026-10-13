@@ -190,6 +190,23 @@ def test_request_payout_calls_pocketmoney_once(
 @patch("chores.routes.v1.user_routes.send_payout_email", return_value=True)
 @patch("chores.routes.v1.user_routes.requests.post")
 @patch("chores.routes.v1.user_routes.requests.get")
+def test_request_payout_sends_service_key(
+    get_mock, post_mock, mail_mock, client, seeded_user, monkeypatch
+):
+    monkeypatch.setenv("PM_SERVICE_KEY", "secret-key")
+    _mock_pocketmoney(get_mock, post_mock)
+
+    resp = client.post(f"/api/v1/users/{seeded_user}/request_payout")
+
+    assert resp.status_code == 200
+    expected = {"X-Service-Key": "secret-key"}
+    assert get_mock.call_args.kwargs["headers"] == expected
+    assert post_mock.call_args.kwargs["headers"] == expected
+
+
+@patch("chores.routes.v1.user_routes.send_payout_email", return_value=True)
+@patch("chores.routes.v1.user_routes.requests.post")
+@patch("chores.routes.v1.user_routes.requests.get")
 def test_request_payout_double_post_does_not_double_charge(
     get_mock, post_mock, mail_mock, client, seeded_user
 ):
