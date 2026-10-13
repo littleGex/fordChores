@@ -84,7 +84,7 @@ def get_user_balance(user_id):
         payout_status='pending').all()
 
     # Calculate total by reaching through the relationship to the Chore model
-    total = sum(item.chore.reward_level for item in pending)
+    total = sum(item.earned for item in pending)
 
     return jsonify({
         "user_id": user_id,
@@ -104,8 +104,8 @@ def get_user_history(user_id):
         Completion.completed_at.desc()).all()
 
     return jsonify([{
-        "task": h.chore.task_name,
-        "reward": h.chore.reward_level,
+        "task": h.task,
+        "reward": h.earned,
         "status": h.payout_status,
         "date": h.completed_at.isoformat()
     } for h in history])
@@ -164,9 +164,9 @@ def request_payout(user_id):
             "email_status": "none"
         }), 200
 
-    total = sum(c.chore.reward_level for c in pending)
-    chore_list = [{"name": c.chore.task_name,
-                   "reward": c.chore.reward_level} for c in pending]
+    total = sum(c.earned for c in pending)
+    chore_list = [{"name": c.task,
+                   "reward": c.earned} for c in pending]
 
     # Claim these completions immediately, before the slow external call.
     # If a second request arrives, the rows are already 'processing' /
@@ -241,7 +241,18 @@ def test_email():
 @parents_only
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
-    # Note: You may need to handle cascading deletes for completions
+
+    # Unpaid chores are money owed; removing the user would wipe them
+    unpaid = Completion.query.filter(
+        Completion.user_id == user.id,
+        Completion.payout_status != 'paid').count()
+    if unpaid:
+        return jsonify({
+            "error": f"{user.name} still has {unpaid} unpaid "
+                     f"chore{'' if unpaid == 1 else 's'}. Pay them out "
+                     "first."}), 409
+
+    # Their paid history goes with them (see User.completions)
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User removed"}), 200

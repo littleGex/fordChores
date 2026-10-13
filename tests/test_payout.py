@@ -313,7 +313,8 @@ def test_request_payout_concurrent_double_click(
 
     def fire():
         results.append(
-            client.post(f"/api/v1/users/{seeded_user}/request_payout")
+            client.post(f"/api/v1/users/{seeded_user}/request_payout",
+                        headers={"Authorization": "Bearer test-token"})
         )
 
     t1 = threading.Thread(target=fire)
