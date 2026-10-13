@@ -41,7 +41,7 @@ onMounted(loadUsers)
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto p-8">
+  <div class="max-w-3xl mx-auto p-4 md:p-8">
 
     <router-link
       to="/dashboard"
@@ -58,7 +58,7 @@ onMounted(loadUsers)
       <p class="text-gray-500 font-medium">Add and manage who can track chores.</p>
     </div>
 
-    <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm mb-12">
+    <div class="bg-white p-5 md:p-8 rounded-[2.5rem] border border-gray-100 shadow-sm mb-12">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div class="space-y-2">
           <label class="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Name</label>
