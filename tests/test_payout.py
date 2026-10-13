@@ -105,7 +105,7 @@ def client(app):
 def seeded_user(app):
     """Create a user with two pending completions worth 7.00 total."""
     with app.app_context():
-        user = User(name="Alex", email="alex@home.com")
+        user = User(name="Alex", email="alex@home.com", pm_child_id=123)
         dishes = Chore(task_name="Dishes", reward_level=2.00)
         mow = Chore(task_name="Mow Lawn", reward_level=5.00)
 
@@ -211,8 +211,26 @@ def test_request_payout_sends_service_key(
 
     assert resp.status_code == 200
     expected = {"X-Service-Key": "secret-key"}
-    assert get_mock.call_args.kwargs["headers"] == expected
     assert post_mock.call_args.kwargs["headers"] == expected
+
+
+@patch("chores.routes.v1.user_routes.send_payout_email", return_value=True)
+@patch("chores.routes.v1.user_routes.requests.post")
+@patch("chores.routes.v1.user_routes.requests.get")
+def test_request_payout_deposits_to_the_linked_child_without_a_lookup(
+    get_mock, post_mock, mail_mock, client, seeded_user, monkeypatch
+):
+    monkeypatch.setenv("PM_BASE_URL", "http://pm")
+    monkeypatch.setenv("PM_DEPOSIT_PATH", "/v1/pocket-money/deposit/")
+    _mock_pocketmoney(get_mock, post_mock)
+
+    resp = client.post(f"/api/v1/users/{seeded_user}/request_payout")
+
+    assert resp.status_code == 200
+    assert post_mock.call_args.args[0] == (
+        "http://pm/v1/pocket-money/deposit/123")
+    # The name is never sent anywhere to find the account
+    assert get_mock.call_count == 0
 
 
 @patch("chores.routes.v1.user_routes.send_payout_email", return_value=True)

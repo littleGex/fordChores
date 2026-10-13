@@ -2,12 +2,15 @@
 import { ref, onMounted } from 'vue'
 import axios from '../api'
 import { formatEuro } from '../utils/format'
+import { POCKET_MONEY_URL } from '../auth'
 
 const users = ref([])
 const chores = ref([])
+// The children's Pocket Money accounts, to link each user to one
+const pmChildren = ref([])
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1'
 
-const newUser = ref({ name: '', email: '' })
+const newUser = ref({ name: '', email: '', pm_child_id: null })
 
 const loadData = async () => {
   try {
@@ -20,13 +23,44 @@ const loadData = async () => {
   } catch { console.error("Admin load failed:") }
 }
 
+const loadPocketMoneyChildren = async () => {
+  try {
+    const res = await axios.get(`${POCKET_MONEY_URL}/children`)
+    pmChildren.value = res.data
+  } catch { console.error("Could not load Pocket Money accounts") }
+}
+
+// An account can belong to one user only, so hide those already taken
+const linkOptions = (user) => {
+  const taken = users.value
+    .filter(u => u.id !== user?.id && u.pm_child_id !== null)
+    .map(u => u.pm_child_id)
+  return pmChildren.value.filter(c => !taken.includes(c.id))
+}
+
+// A link pointing at an account that no longer exists
+const isBrokenLink = (user) =>
+  user.pm_child_id !== null && pmChildren.value.length > 0 &&
+  !pmChildren.value.some(c => c.id === user.pm_child_id)
+
+const linkUser = async (user, value) => {
+  try {
+    await axios.put(`${API}/users/${user.id}`, {
+      pm_child_id: value === '' ? null : Number(value)
+    })
+  } catch (err) {
+    alert(err.response?.data?.error || "Failed to link the account.")
+  }
+  loadData()
+}
+
 // --- USER ACTIONS ---
 
 const addUser = async () => {
   if (!newUser.value.name || !newUser.value.email) return
   try {
     await axios.post(`${API}/users/add_user`, newUser.value) //
-    newUser.value = { name: '', email: '' }
+    newUser.value = { name: '', email: '', pm_child_id: null }
     loadData()
   } catch { alert("Failed to add user.") }
 }
@@ -72,7 +106,10 @@ const deleteChore = async (id) => {
   }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadPocketMoneyChildren()
+})
 </script>
 
 <template>
@@ -96,17 +133,44 @@ onMounted(loadData)
           <label class="block text-[10px] font-black text-indigo-400 uppercase mb-2">Email Address</label>
           <input v-model="newUser.email" type="email" class="w-full px-4 py-3 rounded-xl bg-white border-none outline-none font-medium" />
         </div>
+        <div class="flex-1">
+          <label class="block text-[10px] font-black text-indigo-400 uppercase mb-2">Pocket Money Account</label>
+          <select v-model="newUser.pm_child_id" class="w-full px-4 py-3 rounded-xl bg-white border-none outline-none font-medium">
+            <option :value="null">Not linked</option>
+            <option v-for="child in linkOptions(null)" :key="child.id" :value="child.id">{{ child.name }}</option>
+          </select>
+        </div>
         <button @click="addUser" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-indigo-700">Add</button>
       </div>
 
-      <div v-for="user in users" :key="user.id" class="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 mb-3 flex justify-between items-center gap-3 shadow-sm">
-        <div class="min-w-0">
-          <p class="font-bold text-gray-900 truncate">{{ user.name }}</p>
-          <p class="text-xs text-gray-400 font-medium truncate">{{ user.email }}</p>
+      <div v-for="user in users" :key="user.id" class="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 mb-3 shadow-sm">
+        <div class="flex justify-between items-center gap-3">
+          <div class="min-w-0">
+            <p class="font-bold text-gray-900 truncate">{{ user.name }}</p>
+            <p class="text-xs text-gray-400 font-medium truncate">{{ user.email }}</p>
+          </div>
+          <div class="flex shrink-0 space-x-1 md:space-x-4">
+            <button @click="editUser(user)" class="text-indigo-600 font-bold text-sm px-2 py-2.5">Edit</button>
+            <button @click="deleteUser(user.id)" class="text-red-400 font-bold text-sm px-2 py-2.5">Remove</button>
+          </div>
         </div>
-        <div class="flex shrink-0 space-x-1 md:space-x-4">
-          <button @click="editUser(user)" class="text-indigo-600 font-bold text-sm px-2 py-2.5">Edit</button>
-          <button @click="deleteUser(user.id)" class="text-red-400 font-bold text-sm px-2 py-2.5">Remove</button>
+
+        <!-- Which Pocket Money account this user is: what their login is
+             matched on and where payouts go. Names needn't match. -->
+        <div class="mt-3 pt-3 border-t border-gray-100 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+          <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pocket Money Account</label>
+          <select
+            :value="user.pm_child_id ?? ''"
+            @change="linkUser(user, $event.target.value)"
+            class="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-100 outline-none font-medium text-sm"
+          >
+            <option value="">Not linked</option>
+            <option v-if="isBrokenLink(user)" :value="user.pm_child_id">Unknown account (#{{ user.pm_child_id }})</option>
+            <option v-for="child in linkOptions(user)" :key="child.id" :value="child.id">{{ child.name }}</option>
+          </select>
+          <p v-if="user.pm_child_id === null || isBrokenLink(user)" class="text-xs font-bold text-red-500">
+            Not linked: this user can't log in as a child or be paid out.
+          </p>
         </div>
       </div>
     </section>

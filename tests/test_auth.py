@@ -17,11 +17,13 @@ from chores.models.completion import Completion
 
 import chores.routes.v1.user_routes  # noqa: F401
 
-PARENT = {"role": "parent", "child_name": None}
-ADMIN = {"role": "admin", "child_name": None}
-ADULT = {"role": "adult", "child_name": None}
-PENNY = {"role": "child", "child_name": "Penelope"}
-UNLINKED_CHILD = {"role": "child", "child_name": None}
+PENNY_PM_ID, DOM_PM_ID = 21, 22
+
+PARENT = {"role": "parent", "child_id": None, "child_name": None}
+ADMIN = {"role": "admin", "child_id": None, "child_name": None}
+ADULT = {"role": "adult", "child_id": None, "child_name": None}
+PENNY = {"role": "child", "child_id": PENNY_PM_ID, "child_name": "Penelope"}
+UNLINKED_CHILD = {"role": "child", "child_id": None, "child_name": None}
 
 
 @pytest.fixture()
@@ -50,8 +52,10 @@ def ids(app):
     user with no history (deleting ones that have history is a separate,
     existing problem)."""
     with app.app_context():
-        penny = User(name="Penelope", email="p@home.com")
-        dom = User(name="Dominic", email="d@home.com")
+        penny = User(name="Penelope", email="p@home.com",
+                     pm_child_id=PENNY_PM_ID)
+        dom = User(name="Dominic", email="d@home.com",
+                   pm_child_id=DOM_PM_ID)
         spare = User(name="Spare", email="s@home.com")
         dishes = Chore(task_name="Dishes", reward_level=2.00)
         unused = Chore(task_name="Unused", reward_level=1.00)
@@ -204,10 +208,6 @@ def test_child_without_a_linked_profile_can_do_nothing_personal(call, ids):
 @patch("chores.routes.v1.user_routes.requests.get")
 def test_child_can_request_their_own_payout(get_mock, post_mock, mail_mock,
                                             call, ids, app):
-    lookup = MagicMock()
-    lookup.raise_for_status.return_value = None
-    lookup.json.return_value = {"id": 7}
-    get_mock.return_value = lookup
     post_mock.return_value = MagicMock()
 
     resp = call(PENNY, "post",
@@ -227,3 +227,131 @@ def test_preflight_requests_are_not_blocked(app):
             "Access-Control-Request-Method": "GET"})
 
     assert resp.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# The stored Pocket Money link (pm_child_id)
+# ---------------------------------------------------------------------------
+
+def test_renaming_a_child_in_either_app_does_not_break_their_login(
+        call, ids, app):
+    """The link is the Pocket Money child id, so names can drift apart."""
+    with app.app_context():
+        db.session.get(User, ids["penny"]).name = "Penny the Great"
+        db.session.commit()
+    renamed_elsewhere = {**PENNY, "child_name": "P. Ford"}
+
+    listed = call(renamed_elsewhere, "get", "/api/v1/users/").get_json()
+
+    assert [u["id"] for u in listed] == [ids["penny"]]
+    assert call(renamed_elsewhere, "get",
+                f"/api/v1/users/{ids['penny']}/balance").status_code == 200
+
+
+def test_matching_names_alone_no_longer_link_a_login(call, ids, app):
+    with app.app_context():
+        db.session.get(User, ids["penny"]).pm_child_id = None
+        db.session.commit()
+
+    assert call(PENNY, "get", "/api/v1/users/").get_json() == []
+    assert call(PENNY, "get",
+                f"/api/v1/users/{ids['penny']}/balance").status_code == 403
+
+
+@patch("chores.routes.v1.user_routes.requests.post")
+def test_payout_for_an_unlinked_user_is_refused_and_stays_pending(
+        post_mock, call, ids, app):
+    resp = call(PARENT, "post", f"/api/v1/users/{ids['spare']}/request_payout")
+    assert resp.status_code == 409
+
+    with app.app_context():
+        db.session.get(User, ids["penny"]).pm_child_id = None
+        db.session.commit()
+    resp = call(PARENT, "post", f"/api/v1/users/{ids['penny']}/request_payout")
+
+    assert resp.status_code == 409
+    assert "Not linked" in resp.get_json()["error"]
+    assert post_mock.call_count == 0
+    with app.app_context():
+        statuses = {c.payout_status for c in Completion.query.filter_by(
+            user_id=ids["penny"]).all()}
+        assert statuses == {"pending"}
+
+
+def test_parent_can_set_change_and_clear_a_link(call, ids, app):
+    spare = ids["spare"]
+
+    def link():
+        users = call(PARENT, "get", "/api/v1/users/").get_json()
+        return next(u["pm_child_id"] for u in users if u["id"] == spare)
+
+    assert link() is None
+    assert call(PARENT, "put", f"/api/v1/users/{spare}",
+                json={"pm_child_id": 30}).status_code == 200
+    assert link() == 30
+    # Editing something else leaves the link alone
+    assert call(PARENT, "put", f"/api/v1/users/{spare}",
+                json={"name": "Spare Two"}).status_code == 200
+    assert link() == 30
+    assert call(PARENT, "put", f"/api/v1/users/{spare}",
+                json={"pm_child_id": None}).status_code == 200
+    assert link() is None
+
+
+def test_a_pocket_money_account_can_only_be_linked_once(call, ids):
+    resp = call(PARENT, "put", f"/api/v1/users/{ids['spare']}",
+                json={"pm_child_id": PENNY_PM_ID})
+
+    assert resp.status_code == 409
+
+
+def test_link_must_be_a_number(call, ids):
+    resp = call(PARENT, "put", f"/api/v1/users/{ids['spare']}",
+                json={"pm_child_id": "Penelope"})
+
+    assert resp.status_code == 400
+
+
+def test_new_user_can_be_created_with_a_link(call, ids):
+    resp = call(PARENT, "post", "/api/v1/users/add_user", json={
+        "name": "Third", "email": "t@home.com", "pm_child_id": 40})
+
+    assert resp.status_code == 201
+    users = call(PARENT, "get", "/api/v1/users/").get_json()
+    assert next(u for u in users if u["name"] == "Third")["pm_child_id"] == 40
+
+
+def test_child_cannot_change_their_own_link(call, ids):
+    resp = call(PENNY, "put", f"/api/v1/users/{ids['penny']}",
+                json={"pm_child_id": DOM_PM_ID})
+
+    assert resp.status_code == 403
+
+
+def test_existing_database_gets_the_new_column(tmp_path, monkeypatch):
+    """A database created before pm_child_id existed is upgraded on start
+    and keeps its rows; starting again is a no-op."""
+    import sqlite3
+    path = tmp_path / "old.db"
+    con = sqlite3.connect(path)
+    con.executescript("""
+        CREATE TABLE user (id INTEGER PRIMARY KEY, name VARCHAR(100) NOT NULL,
+                           email VARCHAR(120) NOT NULL UNIQUE);
+        INSERT INTO user (name, email) VALUES ('Penelope', 'p@home.com');
+    """)
+    con.commit()
+    con.close()
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{path}")
+    import importlib
+    import config
+    importlib.reload(config)
+
+    for _ in range(2):
+        old_app = create_app(config.Config)
+        with old_app.app_context():
+            user = User.query.one()
+            assert (user.name, user.pm_child_id) == ("Penelope", None)
+            db.engine.dispose()
+
+    monkeypatch.delenv("DATABASE_URL")
+    importlib.reload(config)

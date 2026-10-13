@@ -4,6 +4,9 @@ import { reactive, computed } from 'vue'
 // Fordstagram and Pocket Money); the chore tracker has none of its own
 export const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8005/v1/family-photos'
 
+// Pocket Money lives next to the logins on the same API
+export const POCKET_MONEY_URL = AUTH_URL.replace(/\/family-photos\/?$/, '/pocket-money')
+
 const PARENT_ROLES = ['parent', 'admin']
 // Adults outside the household aren't part of the chore tracker
 export const ALLOWED_ROLES = [...PARENT_ROLES, 'child']
