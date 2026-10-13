@@ -7,4 +7,4 @@ flake8
 psycopg2-binary
 flask-mail
 flask-cors
-requests
+requestssqlalchemy<2.1
