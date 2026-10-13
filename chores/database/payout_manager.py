@@ -25,7 +25,7 @@ def run_weekly_payout(user_id):
     if not pending_tasks:
         return 0.0
 
-    total_payout = sum(task.chore.reward_level for task in pending_tasks)
+    total_payout = sum(task.earned for task in pending_tasks)
 
     # Mark as paid
     for task in pending_tasks:

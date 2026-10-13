@@ -11,7 +11,7 @@ chore_v1.before_request(load_identity)
 @chore_v1.route('/',
                 methods=['GET'])
 def get_chores():
-    chores = Chore.query.all()
+    chores = Chore.query.filter_by(archived=False).order_by(Chore.id).all()
     return jsonify([{"id": c.id,
                      "task": c.task_name,
                      "reward": c.reward_level} for c in chores])
@@ -56,14 +56,17 @@ def complete_chore():
     user = User.query.get(user_id)
     chore = Chore.query.get(chore_id)
 
-    if not user or not chore:
+    if not user or not chore or chore.archived:
         return jsonify({"error": "User or Chore not found"}), 404
 
     # Create the completion record
     new_completion = Completion(
         user_id=user.id,
         chore_id=chore.id,
-        payout_status='pending'  # Default status for new completions
+        payout_status='pending',  # Default status for new completions
+        # Fix the name and amount now; later edits must not change them
+        task_name=chore.task_name,
+        reward=chore.reward_level
     )
 
     db.session.add(new_completion)
@@ -82,9 +85,19 @@ def complete_chore():
 @parents_only
 def delete_chore(chore_id):
     chore = Chore.query.get_or_404(chore_id)
+
+    # Completions point at the chore they were for, so one that has
+    # ever been completed is retired, not deleted
+    if Completion.query.filter_by(chore_id=chore.id).first():
+        chore.archived = True
+        db.session.commit()
+        return jsonify({"message": "Chore removed from the list; "
+                                   "its history is kept",
+                        "archived": True}), 200
+
     db.session.delete(chore)
     db.session.commit()
-    return jsonify({"message": "Chore deleted"}), 200
+    return jsonify({"message": "Chore deleted", "archived": False}), 200
 
 
 @chore_v1.route('/<int:chore_id>',

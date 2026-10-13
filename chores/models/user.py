@@ -12,6 +12,8 @@ class User(db.Model):
     # is matched on and where payouts are deposited; names are only
     # labels and may differ between the two apps.
     pm_child_id = db.Column(db.Integer, unique=True, nullable=True)
+    # Removing a user removes their history with them
     completions = db.relationship('Completion',
                                   backref='worker',
-                                  lazy=True)
+                                  lazy=True,
+                                  cascade='all, delete-orphan')
