@@ -219,5 +219,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Version
 
-Current version: 1.3.1</content>
+Current version: 1.4.0</content>
 <parameter name="filePath">/Users/alanford/Documents/GitHub/fordChores/README.md
