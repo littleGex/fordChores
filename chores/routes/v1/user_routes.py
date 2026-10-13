@@ -119,9 +119,13 @@ def request_payout(user_id):
     db.session.commit()
 
     base_url = os.getenv("PM_BASE_URL")
+    # Pocket Money only accepts lookups/deposits from a logged-in parent
+    # or from a backend presenting this shared key
+    pm_headers = {"X-Service-Key": os.getenv("PM_SERVICE_KEY", "")}
     try:
         lookup_res = requests.get(
-            f"{base_url}{os.getenv('PM_LOOKUP_PATH')}{user.name}"
+            f"{base_url}{os.getenv('PM_LOOKUP_PATH')}{user.name}",
+            headers=pm_headers
         )
         lookup_res.raise_for_status()
         pm_child_id = lookup_res.json().get("id")
@@ -132,7 +136,8 @@ def request_payout(user_id):
         }
         deposit_res = requests.post(
             f"{base_url}{os.getenv('PM_DEPOSIT_PATH')}{pm_child_id}",
-            params=payload
+            params=payload,
+            headers=pm_headers
         )
         deposit_res.raise_for_status()
     except requests.exceptions.RequestException as e:

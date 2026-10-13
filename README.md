@@ -179,6 +179,7 @@ VITE_API_URL=http://localhost:5001/api/v1
 PM_BASE_URL=https://api.pocketmoney.com
 PM_LOOKUP_PATH=/api/lookup
 PM_DEPOSIT_PATH=/api/deposit
+PM_SERVICE_KEY=same-value-as-POCKET_MONEY_SERVICE_KEY-in-fordDbs
 ```
 
 ## Contributing
