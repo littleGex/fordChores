@@ -37,7 +37,11 @@ const requestPayment = async () => {
     emit('paid')
   } catch (err) {
     console.error("Payout failed:", err)
-    alert("An error occurred while processing your payout.")
+    // 409 means the user isn't linked to a Pocket Money account yet
+    const reason = err.response?.status === 409 ? err.response.data.details : null
+    alert(reason
+      ? `This payout can't be sent yet. ${reason}`
+      : "An error occurred while processing your payout.")
   } finally {
     isProcessing.value = false
   }

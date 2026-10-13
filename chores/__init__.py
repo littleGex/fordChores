@@ -41,5 +41,7 @@ def create_app(config_class=Config):
     with app.app_context():
         # This creates the .db file and tables if they don't exist
         db.create_all()
+        from chores.database.migrate import ensure_schema
+        ensure_schema()
 
     return app

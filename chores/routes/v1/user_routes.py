@@ -1,7 +1,8 @@
 import os
 import requests
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
+from sqlalchemy.exc import IntegrityError
 from chores.models import User, Completion
 from chores.database.payout_manager import run_weekly_payout
 from chores.database import db
@@ -19,11 +20,42 @@ user_v1.before_request(load_identity)
 @parents_only
 def add_user():
     data = request.get_json()
-    new_user = User(name=data['name'], email=data['email'])
+    new_user = User(name=data['name'], email=data['email'],
+                    pm_child_id=_pm_child_id(data))
     db.session.add(new_user)
-    db.session.commit()
+    _commit_link()
 
     return jsonify({"message": "User added successfully"}), 201
+
+
+def _pm_child_id(data, current=None):
+    """Reads the optional Pocket Money link from a request body. Absent
+    keeps the current value; null or '' clears it."""
+    if 'pm_child_id' not in data:
+        return current
+    value = data['pm_child_id']
+    if value is None or value == '':
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        response = jsonify({"error": "pm_child_id must be a number"})
+        response.status_code = 400
+        abort(response)
+
+
+def _commit_link():
+    """Commits, turning the unique constraint on pm_child_id into a
+    readable error instead of a 500."""
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        response = jsonify({
+            "error": "That Pocket Money account is already linked to "
+                     "another user (or the email is already in use)"})
+        response.status_code = 409
+        abort(response)
 
 
 @user_v1.route('/',
@@ -31,13 +63,14 @@ def add_user():
 def get_users():
     # Parents see everyone; a child only sees themselves
     if is_parent():
-        users = User.query.all()
+        users = User.query.order_by(User.id).all()
     else:
         me = own_user()
         users = [me] if me else []
     return jsonify([{"id": u.id,
                      "name": u.name,
-                     "email": u.email} for u in users])
+                     "email": u.email,
+                     "pm_child_id": u.pm_child_id} for u in users])
 
 
 @user_v1.route('/<int:user_id>/balance',
@@ -111,6 +144,14 @@ def request_payout(user_id):
 
     user = User.query.get_or_404(user_id)
 
+    # Without a link there is nowhere to pay into. Refuse before
+    # claiming anything, so the chores simply stay pending.
+    if user.pm_child_id is None:
+        return jsonify({
+            "error": "Not linked to a Pocket Money account",
+            "details": "A parent needs to link this user in Admin."
+        }), 409
+
     # Lock the pending rows for this user so concurrent requests serialize
     pending = Completion.query.filter_by(
         user_id=user_id,
@@ -139,19 +180,12 @@ def request_payout(user_id):
     # or from a backend presenting this shared key
     pm_headers = {"X-Service-Key": os.getenv("PM_SERVICE_KEY", "")}
     try:
-        lookup_res = requests.get(
-            f"{base_url}{os.getenv('PM_LOOKUP_PATH')}{user.name}",
-            headers=pm_headers
-        )
-        lookup_res.raise_for_status()
-        pm_child_id = lookup_res.json().get("id")
-
         payload = {
             "amount": float(total),
             "description": f"Payout for {len(pending)} chores"
         }
         deposit_res = requests.post(
-            f"{base_url}{os.getenv('PM_DEPOSIT_PATH')}{pm_child_id}",
+            f"{base_url}{os.getenv('PM_DEPOSIT_PATH')}{user.pm_child_id}",
             params=payload,
             headers=pm_headers
         )
@@ -221,5 +255,6 @@ def update_user(user_id):
     data = request.get_json()
     user.name = data.get('name', user.name)
     user.email = data.get('email', user.email)
-    db.session.commit()
+    user.pm_child_id = _pm_child_id(data, current=user.pm_child_id)
+    _commit_link()
     return jsonify({"message": "User updated"}), 200

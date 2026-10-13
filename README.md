@@ -177,9 +177,12 @@ VITE_API_URL=http://localhost:5001/api/v1
 
 # Pocket Money integration (optional)
 PM_BASE_URL=https://api.pocketmoney.com
-PM_LOOKUP_PATH=/api/lookup
 PM_DEPOSIT_PATH=/api/deposit
 PM_SERVICE_KEY=same-value-as-POCKET_MONEY_SERVICE_KEY-in-fordDbs
+
+# Each user is linked to a Pocket Money child in Admin ("Pocket Money
+# Account"). That link, not the name, decides whose login it is and where
+# payouts are deposited.
 
 # Family logins (kept by the fordDbs API; the chore tracker has no accounts)
 VITE_AUTH_URL=https://your-forddbs-api/v1/family-photos
