@@ -7,7 +7,7 @@ from chores.database import db
 from chores.extension import mail
 
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 
 def create_app(config_class=Config):
