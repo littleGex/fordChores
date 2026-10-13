@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import axios from '../api'
 
 const users = ref([])
 const newUserName = ref('')

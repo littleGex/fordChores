@@ -85,9 +85,20 @@ def app():
         db.drop_all()
 
 
+@pytest.fixture(autouse=True)
+def logged_in_parent():
+    """Every route needs a family login; these tests are about payouts,
+    so they all run as a parent. Auth itself is covered in test_auth.py."""
+    with patch("chores.auth.fetch_identity",
+               return_value=(200, {"role": "parent", "child_name": None})):
+        yield
+
+
 @pytest.fixture()
 def client(app):
-    return app.test_client()
+    client = app.test_client()
+    client.environ_base["HTTP_AUTHORIZATION"] = "Bearer test-token"
+    return client
 
 
 @pytest.fixture()
