@@ -4,6 +4,7 @@ node_modules/
 __pycache__/
 dist/
 postgres_data/
+instance/
 *.pyc
 .DS_Store
 # IDE folders and files
