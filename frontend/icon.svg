@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Square and opaque for iOS. Android can crop it to a circle, so the art stays within 204 of the middle. -->
+  <rect width="512" height="512" fill="#4f46e5"/>
+  <rect x="136" y="96" width="240" height="320" rx="30" fill="#ffffff"/>
+  <rect x="206" y="72" width="100" height="56" rx="18" fill="#c7d2fe"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="20">
+    <path d="M172 206l22 22 38-44" stroke="#16a34a"/>
+    <path d="M172 306l22 22 38-44" stroke="#16a34a"/>
+    <path d="M262 208h76M262 308h76" stroke="#a5b4fc"/>
+  </g>
+</svg>
