@@ -146,7 +146,8 @@ fordChores/
 │   │   ├── views/         # Page components
 │   │   ├── stores/        # Pinia stores
 │   │   └── router/        # Vue Router config
-│   └── public/            # Static assets
+│   ├── public/            # Static assets
+│   └── icon.svg           # Source of the Home Screen icons in public/
 ├── instance/              # Instance-specific data (database)
 ├── docker-compose.yaml    # Docker orchestration
 ├── requirements.txt       # Python dependencies
@@ -219,5 +220,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Version
 
-Current version: 1.4.0</content>
+Current version: 1.5.0</content>
 <parameter name="filePath">/Users/alanford/Documents/GitHub/fordChores/README.md
